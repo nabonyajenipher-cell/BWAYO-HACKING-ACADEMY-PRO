@@ -1,0 +1,8 @@
+{
+  "appId": "com.bwayo.hackingacademypro",
+  "appName": "BWAYO HACKING ACADEMY PRO",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}
