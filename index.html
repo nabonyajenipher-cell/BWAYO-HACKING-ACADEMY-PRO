@@ -9,7 +9,7 @@
 </style>
 </head>
 <body>
-<header><div class="brand">BWAYO <span>HACKING ACADEMY PRO</span></div><nav><a class="btn secondary" href="#courses">Courses</a><a class="btn secondary" href="#membership">Membership</a><a class="btn" href="#account">Register / Sign in</a></nav></header>
+<header><div class="brand">BWAYO <span>HACKING ACADEMY PRO</span></div><nav><a class="btn secondary" href="#courses">Courses</a><a class="btn secondary" href="#membership">Membership</a><a class="btn" href="#account">Register / Sign in</a><a id="adminNav" class="btn hidden" href="#admin">Admin dashboard</a></nav></header>
 <main>
 <section class="hero"><div class="eyebrow">Learn • Practise • Defend</div><h1>Build skills. Protect the digital world.</h1><p class="muted">An advanced training environment for authorized security assessment, network defense, Linux operations, web application security and incident response. Work only within systems you own or have explicit permission to test. Learn only on systems you own or have clear permission to test.</p><a class="btn" href="#courses">Explore lessons</a></section>
 <section class="grid"><article class="card"><div class="tag">01 / OPERATIONS</div><h2>Security operations</h2><p>Build disciplined workflows for asset discovery, threat modeling and defensive validation.</p></article><article class="card"><div class="tag">02 / ASSESSMENT</div><h2>Authorized assessment</h2><p>Apply repeatable methodology in isolated labs with documented scope and evidence.</p></article><article class="card"><div class="tag">03 / RESPONSE</div><h2>Detection & response</h2><p>Develop monitoring, hardening, triage and recovery capabilities.</p></article></section>
@@ -38,7 +38,7 @@
 <button onclick="submitPayment()">Submit payment for verification</button><p id="paymentResult" class="muted" aria-live="polite"></p>
 <h3>My payment submissions</h3><button class="secondary" onclick="loadMyPayments()">Refresh my payments</button><div id="myPayments" class="muted"></div>
 </article></section>
-<section class="section" id="admin"><div class="eyebrow">CONTROL CENTER</div><article class="card"><div class="lesson"><div><h2>Administrator dashboard</h2><p class="muted">Restricted to accounts with the administrator role in the database.</p></div><button class="secondary" onclick="loadAdminPayments()">Refresh</button></div><p id="adminAccess" class="notice">Sign in with your administrator account to verify access.</p><div id="adminStats" class="grid"><div class="card"><div class="tag">PENDING</div><h2 id="adminPending">—</h2></div><div class="card"><div class="tag">APPROVED</div><h2 id="adminApproved">—</h2></div><div class="card"><div class="tag">REJECTED</div><h2 id="adminRejected">—</h2></div></div><h3>Payment submissions</h3><div id="adminPayments" class="muted">Administrator sign-in required.</div></article></section>
+<section class="section hidden" id="admin"><div class="eyebrow">CONTROL CENTER</div><article class="card"><div class="lesson"><div><h2>Administrator dashboard</h2><p class="muted">Restricted to accounts with the administrator role in the database.</p></div><button class="secondary" onclick="loadAdminPayments()">Refresh</button></div><p id="adminAccess" class="notice">Sign in with your administrator account to verify access.</p><div id="adminStats" class="grid"><div class="card"><div class="tag">PENDING</div><h2 id="adminPending">—</h2></div><div class="card"><div class="tag">APPROVED</div><h2 id="adminApproved">—</h2></div><div class="card"><div class="tag">REJECTED</div><h2 id="adminRejected">—</h2></div></div><h3>Payment submissions</h3><div id="adminPayments" class="muted">Administrator sign-in required.</div></article></section>
 </main><footer>© 2026 BWAYO HACKING ACADEMY PRO • Ethical learning, authorized practice only.</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -55,7 +55,7 @@ async function registerStudent(){
  try{
   const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:name}}});
   if(error)throw error;
-  if(data.session){showAuthMessage('Account created and signed in. You can now use the academy.');}
+  if(data.session){showAuthMessage('Account created and signed in. You can now use the academy.');await refreshAdminVisibility();}
   else{showAuthMessage('Account request received, but no active session was returned. Check that Confirm email is OFF in Supabase Authentication settings, then try registering again. If this email was already registered, use Sign in instead.',true);}
  }catch(error){showAuthMessage(error.message||'Registration failed. Check your connection and try again.',true);}
  finally{if(button){button.disabled=false;button.textContent='Create account';}}
@@ -63,10 +63,10 @@ async function registerStudent(){
 async function signInStudent(){
  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
  if(!email||!password){showAuthMessage('Enter your email and password to sign in.',true);return;}
- try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;showAuthMessage('Signed in successfully as '+(data.user?.email||email)+'.');}
+ try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;showAuthMessage('Signed in successfully as '+(data.user?.email||email)+'.');await refreshAdminVisibility();}
  catch(error){showAuthMessage(error.message||'Sign-in failed. Check your email, password and confirmation status.',true);}
 }
-async function signOutStudent(){try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;showAuthMessage('Signed out.');}catch(error){showAuthMessage(error.message||'Could not sign out.',true);}}
+async function signOutStudent(){try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;document.getElementById('admin').classList.add('hidden');document.getElementById('adminNav').classList.add('hidden');showAuthMessage('Signed out.');}catch(error){showAuthMessage(error.message||'Could not sign out.',true);}}
 
 async function submitPayment(){
  const {data:{user}}=await supabaseClient.auth.getUser();
@@ -92,8 +92,8 @@ async function loadAdminPayments(){
  const box=document.getElementById('adminPayments'), access=document.getElementById('adminAccess');
  box.textContent='Checking administrator access...';
  const state=await isAcademyAdmin();
- if(!state.user){access.textContent='Sign in first with the account approved as an administrator.';box.textContent='No signed-in account.';return;}
- if(!state.isAdmin){access.textContent='Access denied. This account does not have the administrator role.';box.textContent='Administrator privileges are required.';return;}
+ if(!state.user){document.getElementById('admin').classList.add('hidden');document.getElementById('adminNav').classList.add('hidden');access.textContent='Sign in first with the account approved as an administrator.';box.textContent='No signed-in account.';return;}
+ if(!state.isAdmin){document.getElementById('admin').classList.add('hidden');document.getElementById('adminNav').classList.add('hidden');access.textContent='Access denied. This account does not have the administrator role.';box.textContent='Administrator privileges are required.';return;}
  access.textContent='Administrator access verified for '+(state.profile.display_name||state.user.email)+'.';
  const {data,error}=await supabaseClient.from('payment_submissions').select('id,user_id,amount,currency,payer_phone,transaction_reference,status,created_at').order('created_at',{ascending:false});
  if(error){box.textContent='Could not load submissions: '+error.message;return;}
@@ -127,6 +127,9 @@ async function reviewPayment(p,status){
  alert(status==='approved'?'Approved. A 30-day membership record was created.':'Payment rejected.');
  await loadAdminPayments();
 }
+supabaseClient.auth.onAuthStateChange(()=>{setTimeout(refreshAdminVisibility,0);});
+refreshAdminVisibility();
+
 const lessons={
 foundations:['Cybersecurity foundations','Cybersecurity protects systems, networks and data. The CIA triad means confidentiality (only authorized access), integrity (information remains accurate) and availability (systems remain usable). Always get written permission before security testing.'],
 networking:['Networking essentials','An IP address identifies a device on a network. DNS translates domain names into addresses. Routers move traffic between networks, while ports identify services on a device. Practise by mapping your own home lab.'],
