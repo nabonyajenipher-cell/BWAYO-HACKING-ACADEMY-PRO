@@ -9,7 +9,7 @@
 </style>
 </head>
 <body>
-<header><div class="brand">BWAYO <span>HACKING ACADEMY PRO</span></div><nav><a class="btn secondary" href="#courses">Courses</a><a class="btn secondary" href="#membership">Membership</a><a class="btn" href="#account">Student sign in</a></nav></header>
+<header><div class="brand">BWAYO <span>HACKING ACADEMY PRO</span></div><nav><a class="btn secondary" href="#courses">Courses</a><a class="btn secondary" href="#membership">Membership</a><a class="btn" href="#account">Register / Sign in</a></nav></header>
 <main>
 <section class="hero"><div class="eyebrow">Learn • Practise • Defend</div><h1>Build skills. Protect the digital world.</h1><p class="muted">An advanced training environment for authorized security assessment, network defense, Linux operations, web application security and incident response. Work only within systems you own or have explicit permission to test. Learn only on systems you own or have clear permission to test.</p><a class="btn" href="#courses">Explore lessons</a></section>
 <section class="grid"><article class="card"><div class="tag">01 / OPERATIONS</div><h2>Security operations</h2><p>Build disciplined workflows for asset discovery, threat modeling and defensive validation.</p></article><article class="card"><div class="tag">02 / ASSESSMENT</div><h2>Authorized assessment</h2><p>Apply repeatable methodology in isolated labs with documented scope and evidence.</p></article><article class="card"><div class="tag">03 / RESPONSE</div><h2>Detection & response</h2><p>Develop monitoring, hardening, triage and recovery capabilities.</p></article></section>
@@ -45,18 +45,29 @@
 const SUPABASE_URL='https://tgbtdbfhmgzsipervxld.supabase.co';
 const SUPABASE_KEY='sb_publishable_iNkrek9aGIbhTHAz1Fw7Eg_6SRsaOdr';
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+function showAuthMessage(message,isError=false){
+ const el=document.getElementById('authResult');el.textContent=message;el.style.color=isError?'#ffb4ab':'#a9bad0';
+}
 async function registerStudent(){
  const email=document.getElementById('authEmail').value.trim(), password=document.getElementById('authPassword').value, name=document.getElementById('authName').value.trim();
- if(!email||password.length<8||!name){document.getElementById('authResult').textContent='Enter your name, a valid email, and a password of at least 8 characters.';return;}
- const {error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:name}}});
- document.getElementById('authResult').textContent=error?error.message:'Registration submitted. Check your email if confirmation is enabled, then sign in.';
+ if(!name||!email||password.length<8){showAuthMessage('Enter your full name, a valid email address and a password of at least 8 characters.',true);return;}
+ const button=document.querySelector('button[onclick="registerStudent()"]');if(button){button.disabled=true;button.textContent='Creating account...';}
+ try{
+  const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:name}}});
+  if(error)throw error;
+  if(data.session){showAuthMessage('Account created and signed in. You can now use the academy.');}
+  else{showAuthMessage('Registration accepted. Check your inbox (and spam folder) for the Supabase confirmation email, confirm your address, then return here and sign in.');}
+ }catch(error){showAuthMessage(error.message||'Registration failed. Check your connection and try again.',true);}
+ finally{if(button){button.disabled=false;button.textContent='Create account';}}
 }
 async function signInStudent(){
  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
- const {error}=await supabaseClient.auth.signInWithPassword({email,password});
- document.getElementById('authResult').textContent=error?error.message:'Signed in successfully.';
+ if(!email||!password){showAuthMessage('Enter your email and password to sign in.',true);return;}
+ try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;showAuthMessage('Signed in successfully as '+(data.user?.email||email)+'.');}
+ catch(error){showAuthMessage(error.message||'Sign-in failed. Check your email, password and confirmation status.',true);}
 }
-async function signOutStudent(){await supabaseClient.auth.signOut();document.getElementById('authResult').textContent='Signed out.';}
+async function signOutStudent(){try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;showAuthMessage('Signed out.');}catch(error){showAuthMessage(error.message||'Could not sign out.',true);}}
+
 async function submitPayment(){
  const {data:{user}}=await supabaseClient.auth.getUser();
  if(!user){document.getElementById('paymentResult').textContent='Please sign in first.';return;}
