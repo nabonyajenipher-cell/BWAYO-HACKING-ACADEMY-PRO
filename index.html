@@ -164,6 +164,25 @@ async function reviewPayment(p,status){
  alert(status==='approved'?'Approved. A 30-day membership record was created.':'Payment rejected.');
  await loadAdminPayments();
 }
+async function refreshAdminVisibility(){
+ try{
+  const state=await isAcademyAdmin();
+  const adminSection=document.getElementById('admin');
+  const adminLink=document.getElementById('adminNav');
+  if(state.isAdmin){
+   adminSection.classList.remove('hidden');
+   adminLink.classList.remove('hidden');
+   await loadAdminPayments();
+  }else{
+   adminSection.classList.add('hidden');
+   adminLink.classList.add('hidden');
+  }
+ }catch(error){
+  document.getElementById('admin').classList.add('hidden');
+  document.getElementById('adminNav').classList.add('hidden');
+  console.error('Could not refresh administrator visibility:',error);
+ }
+}
 supabaseClient.auth.onAuthStateChange(()=>{setTimeout(refreshAdminVisibility,0);});
 refreshAdminVisibility();
 
