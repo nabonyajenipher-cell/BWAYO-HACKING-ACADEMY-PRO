@@ -38,7 +38,7 @@
 <button onclick="submitPayment()">Submit payment for verification</button><p id="paymentResult" class="muted" aria-live="polite"></p>
 <h3>My payment submissions</h3><button class="secondary" onclick="loadMyPayments()">Refresh my payments</button><div id="myPayments" class="muted"></div>
 </article></section>
-<section class="section" id="admin"><div class="eyebrow">Administrator</div><article class="card"><h2>Payment review dashboard</h2><p class="muted">Only the account assigned the admin role in the secure database can review payments.</p><button onclick="loadAdminPayments()">Load payment submissions</button><div id="adminPayments" class="muted"></div></article></section>
+<section class="section" id="admin"><div class="eyebrow">CONTROL CENTER</div><article class="card"><div class="lesson"><div><h2>Administrator dashboard</h2><p class="muted">Restricted to accounts with the administrator role in the database.</p></div><button class="secondary" onclick="loadAdminPayments()">Refresh</button></div><p id="adminAccess" class="notice">Sign in with your administrator account to verify access.</p><div id="adminStats" class="grid"><div class="card"><div class="tag">PENDING</div><h2 id="adminPending">—</h2></div><div class="card"><div class="tag">APPROVED</div><h2 id="adminApproved">—</h2></div><div class="card"><div class="tag">REJECTED</div><h2 id="adminRejected">—</h2></div></div><h3>Payment submissions</h3><div id="adminPayments" class="muted">Administrator sign-in required.</div></article></section>
 </main><footer>© 2026 BWAYO HACKING ACADEMY PRO • Ethical learning, authorized practice only.</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -71,32 +71,50 @@ async function loadMyPayments(){
  const {data,error}=await supabaseClient.from('payment_submissions').select('amount,currency,transaction_reference,status,created_at').eq('user_id',user.id).order('created_at',{ascending:false});
  document.getElementById('myPayments').textContent=error?error.message:(data.length?data.map(x=>x.currency+' '+x.amount+' • '+x.transaction_reference+' • '+x.status).join(' | '):'No payment submissions yet.');
 }
+async function isAcademyAdmin(){
+ const {data:{user},error:authError}=await supabaseClient.auth.getUser();
+ if(authError||!user)return {user:null,isAdmin:false};
+ const {data:profile,error}=await supabaseClient.from('profiles').select('role,display_name').eq('id',user.id).maybeSingle();
+ return {user,isAdmin:!error&&profile?.role==='admin',profile,error};
+}
 async function loadAdminPayments(){
- const box=document.getElementById('adminPayments'); box.textContent='Loading...';
+ const box=document.getElementById('adminPayments'), access=document.getElementById('adminAccess');
+ box.textContent='Checking administrator access...';
+ const state=await isAcademyAdmin();
+ if(!state.user){access.textContent='Sign in first with the account approved as an administrator.';box.textContent='No signed-in account.';return;}
+ if(!state.isAdmin){access.textContent='Access denied. This account does not have the administrator role.';box.textContent='Administrator privileges are required.';return;}
+ access.textContent='Administrator access verified for '+(state.profile.display_name||state.user.email)+'.';
  const {data,error}=await supabaseClient.from('payment_submissions').select('id,user_id,amount,currency,payer_phone,transaction_reference,status,created_at').order('created_at',{ascending:false});
- if(error){box.textContent='Unable to load. Sign in with the configured administrator account. '+error.message;return;}
+ if(error){box.textContent='Could not load submissions: '+error.message;return;}
+ const counts={pending:0,approved:0,rejected:0}; (data||[]).forEach(p=>{if(counts[p.status]!==undefined)counts[p.status]++;});
+ document.getElementById('adminPending').textContent=counts.pending;
+ document.getElementById('adminApproved').textContent=counts.approved;
+ document.getElementById('adminRejected').textContent=counts.rejected;
  box.innerHTML='';
- if(!data.length){box.textContent='No payment submissions yet.';return;}
+ if(!data?.length){box.textContent='No payment submissions yet.';return;}
  data.forEach(p=>{
   const row=document.createElement('div'); row.className='card'; row.style.marginTop='12px';
-  const info=document.createElement('p'); info.textContent=p.currency+' '+p.amount+' • payer '+p.payer_phone+' • ref '+p.transaction_reference+' • '+p.status; row.appendChild(info);
+  const info=document.createElement('p'); info.textContent=p.currency+' '+p.amount+' • payer '+p.payer_phone+' • reference '+p.transaction_reference+' • '+p.status+' • '+new Date(p.created_at).toLocaleString(); row.appendChild(info);
   if(p.status==='pending'){
-   const approve=document.createElement('button'); approve.textContent='Approve payment'; approve.onclick=()=>reviewPayment(p,'approved'); row.appendChild(approve);
+   const approve=document.createElement('button'); approve.textContent='Approve & activate 30 days'; approve.onclick=()=>reviewPayment(p,'approved'); row.appendChild(approve);
    const reject=document.createElement('button'); reject.className='secondary'; reject.textContent='Reject'; reject.style.marginLeft='8px'; reject.onclick=()=>reviewPayment(p,'rejected'); row.appendChild(reject);
   }
   box.appendChild(row);
  });
 }
 async function reviewPayment(p,status){
+ const state=await isAcademyAdmin();
+ if(!state.user||!state.isAdmin){alert('Administrator access is required.');return;}
+ if(!confirm(status==='approved'?'Confirm that this UGX 1,000 payment is visible in your MTN MoMo account? Approve and activate 30 days?':'Reject this payment submission?'))return;
  if(status==='approved'){
   const starts=new Date(), expires=new Date(starts.getTime()+30*24*60*60*1000);
   const {error:memberError}=await supabaseClient.from('memberships').insert({user_id:p.user_id,status:'active',starts_at:starts.toISOString(),expires_at:expires.toISOString(),payment_provider:'manual_mtn_momo',payment_reference:p.transaction_reference});
-  if(memberError){alert('Could not activate membership: '+memberError.message);return;}
+  if(memberError){alert('Membership was not activated: '+memberError.message);return;}
  }
- const {error}=await supabaseClient.from('payment_submissions').update({status,reviewed_at:new Date().toISOString()}).eq('id',p.id);
- if(error){alert('Review update issue: '+error.message);return;}
- alert(status==='approved'?'Payment approved and 30-day membership activated.':'Payment rejected.');
- loadAdminPayments();
+ const {error}=await supabaseClient.from('payment_submissions').update({status,reviewed_at:new Date().toISOString()}).eq('id',p.id).eq('status','pending');
+ if(error){alert('Could not update payment status: '+error.message);return;}
+ alert(status==='approved'?'Approved. A 30-day membership record was created.':'Payment rejected.');
+ await loadAdminPayments();
 }
 const lessons={
 foundations:['Cybersecurity foundations','Cybersecurity protects systems, networks and data. The CIA triad means confidentiality (only authorized access), integrity (information remains accurate) and availability (systems remain usable). Always get written permission before security testing.'],
