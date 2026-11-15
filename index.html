@@ -23,9 +23,82 @@
 </div><article class="card hidden" id="lessonPanel"><div class="lesson"><h2 id="lessonTitle">Lesson</h2><button class="secondary" onclick="closeLesson()">Close</button></div><p class="muted" id="lessonText"></p></article></section>
 <section class="section" id="quiz"><div class="eyebrow">Check your knowledge</div><article class="card"><h2>Quick quiz</h2><p>What should you have before testing a website's security?</p><button class="quiz-option" onclick="answer(false)">A. A guess that the owner will not mind</button><button class="quiz-option" onclick="answer(true)">B. Clear permission and an agreed scope</button><button class="quiz-option" onclick="answer(false)">C. Another person's password</button><p id="quizResult" class="muted" aria-live="polite"></p></article></section>
 <section class="section" id="membership"><div class="eyebrow">Student membership</div><article class="card"><h2>UGX 1,000 / month</h2><p class="muted">Planned membership price. Course access should be unlocked only after a payment provider confirms payment securely on the server.</p><div class="notice">Payments are not connected yet. Do not send money to an unverified number from this demo. MTN MoMo merchant or payment-provider details must be configured privately on a secure backend.</div></article></section>
-<section class="section" id="account"><div class="eyebrow">Student area • Demo</div><article class="card"><h2>Student sign in preview</h2><p class="muted">This preview does not create a real account or store passwords. A secure backend is required before public student registration.</p><label for="email">Email address</label><input id="email" type="email" placeholder="student@example.com"><label for="password">Password (demo only)</label><input id="password" type="password" placeholder="Do not enter a real password"><button onclick="demoLogin()">Preview sign in</button><p id="loginResult" class="muted" aria-live="polite"></p></article></section>
+<section class="section" id="account"><div class="eyebrow">Secure student account</div><article class="card">
+<h2>Register or sign in</h2><p class="muted">Create your student account or sign in. Use a real email and a strong password.</p>
+<label for="authName">Full name (for registration)</label><input id="authName" autocomplete="name" placeholder="Your full name">
+<label for="authEmail">Email address</label><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+<label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="registerStudent()">Create account</button><button class="secondary" onclick="signInStudent()">Sign in</button><button class="secondary" onclick="signOutStudent()">Sign out</button></div>
+<p id="authResult" class="muted" aria-live="polite">Not signed in.</p></article></section>
+<section class="section" id="pay"><div class="eyebrow">Manual MTN Mobile Money</div><article class="card">
+<h2>Pay UGX 1,000 for one month</h2><p class="muted">Send exactly UGX 1,000 using MTN Mobile Money to the number below. Keep the transaction ID from your confirmation message, sign in, then submit the payment details. Access stays locked until the admin verifies the payment.</p>
+<p><strong>MTN MoMo number:</strong> <span style="font-size:1.2rem;color:var(--accent)">0794 704 738</span></p>
+<p class="notice">Check the recipient name on your phone before paying. This is manual payment; the website cannot independently verify an MTN transaction. Never enter your MoMo PIN or OTP here.</p>
+<label for="payerPhone">Phone number you paid from</label><input id="payerPhone" type="tel" placeholder="07XXXXXXXX">
+<label for="transactionRef">MTN transaction ID / reference</label><input id="transactionRef" placeholder="Enter the transaction reference">
+<button onclick="submitPayment()">Submit payment for verification</button><p id="paymentResult" class="muted" aria-live="polite"></p>
+<h3>My payment submissions</h3><button class="secondary" onclick="loadMyPayments()">Refresh my payments</button><div id="myPayments" class="muted"></div>
+</article></section>
+<section class="section" id="admin"><div class="eyebrow">Administrator</div><article class="card"><h2>Payment review dashboard</h2><p class="muted">Only the account assigned the admin role in the secure database can review payments.</p><button onclick="loadAdminPayments()">Load payment submissions</button><div id="adminPayments" class="muted"></div></article></section>
 </main><footer>© 2026 BWAYO HACKING ACADEMY PRO • Ethical learning, authorized practice only.</footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL='https://tgbtdbfhmgzsipervxld.supabase.co';
+const SUPABASE_KEY='sb_publishable_iNkrek9aGIbhTHAz1Fw7Eg_6SRsaOdr';
+const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+async function registerStudent(){
+ const email=document.getElementById('authEmail').value.trim(), password=document.getElementById('authPassword').value, name=document.getElementById('authName').value.trim();
+ if(!email||password.length<8||!name){document.getElementById('authResult').textContent='Enter your name, a valid email, and a password of at least 8 characters.';return;}
+ const {error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:name}}});
+ document.getElementById('authResult').textContent=error?error.message:'Registration submitted. Check your email if confirmation is enabled, then sign in.';
+}
+async function signInStudent(){
+ const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
+ const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+ document.getElementById('authResult').textContent=error?error.message:'Signed in successfully.';
+}
+async function signOutStudent(){await supabaseClient.auth.signOut();document.getElementById('authResult').textContent='Signed out.';}
+async function submitPayment(){
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){document.getElementById('paymentResult').textContent='Please sign in first.';return;}
+ const phone=document.getElementById('payerPhone').value.trim(), ref=document.getElementById('transactionRef').value.trim();
+ if(!phone||!ref){document.getElementById('paymentResult').textContent='Enter the phone number used and the transaction reference.';return;}
+ const {error}=await supabaseClient.from('payment_submissions').insert({user_id:user.id,amount:1000,currency:'UGX',payer_phone:phone,transaction_reference:ref,status:'pending'});
+ document.getElementById('paymentResult').textContent=error?error.message:'Payment submitted for manual review. Access is not active until approved.';
+ if(!error){document.getElementById('transactionRef').value='';loadMyPayments();}
+}
+async function loadMyPayments(){
+ const {data:{user}}=await supabaseClient.auth.getUser(); if(!user){document.getElementById('myPayments').textContent='Sign in to view submissions.';return;}
+ const {data,error}=await supabaseClient.from('payment_submissions').select('amount,currency,transaction_reference,status,created_at').eq('user_id',user.id).order('created_at',{ascending:false});
+ document.getElementById('myPayments').textContent=error?error.message:(data.length?data.map(x=>x.currency+' '+x.amount+' • '+x.transaction_reference+' • '+x.status).join(' | '):'No payment submissions yet.');
+}
+async function loadAdminPayments(){
+ const box=document.getElementById('adminPayments'); box.textContent='Loading...';
+ const {data,error}=await supabaseClient.from('payment_submissions').select('id,user_id,amount,currency,payer_phone,transaction_reference,status,created_at').order('created_at',{ascending:false});
+ if(error){box.textContent='Unable to load. Sign in with the configured administrator account. '+error.message;return;}
+ box.innerHTML='';
+ if(!data.length){box.textContent='No payment submissions yet.';return;}
+ data.forEach(p=>{
+  const row=document.createElement('div'); row.className='card'; row.style.marginTop='12px';
+  const info=document.createElement('p'); info.textContent=p.currency+' '+p.amount+' • payer '+p.payer_phone+' • ref '+p.transaction_reference+' • '+p.status; row.appendChild(info);
+  if(p.status==='pending'){
+   const approve=document.createElement('button'); approve.textContent='Approve payment'; approve.onclick=()=>reviewPayment(p,'approved'); row.appendChild(approve);
+   const reject=document.createElement('button'); reject.className='secondary'; reject.textContent='Reject'; reject.style.marginLeft='8px'; reject.onclick=()=>reviewPayment(p,'rejected'); row.appendChild(reject);
+  }
+  box.appendChild(row);
+ });
+}
+async function reviewPayment(p,status){
+ if(status==='approved'){
+  const starts=new Date(), expires=new Date(starts.getTime()+30*24*60*60*1000);
+  const {error:memberError}=await supabaseClient.from('memberships').insert({user_id:p.user_id,status:'active',starts_at:starts.toISOString(),expires_at:expires.toISOString(),payment_provider:'manual_mtn_momo',payment_reference:p.transaction_reference});
+  if(memberError){alert('Could not activate membership: '+memberError.message);return;}
+ }
+ const {error}=await supabaseClient.from('payment_submissions').update({status,reviewed_at:new Date().toISOString()}).eq('id',p.id);
+ if(error){alert('Review update issue: '+error.message);return;}
+ alert(status==='approved'?'Payment approved and 30-day membership activated.':'Payment rejected.');
+ loadAdminPayments();
+}
 const lessons={
 foundations:['Cybersecurity foundations','Cybersecurity protects systems, networks and data. The CIA triad means confidentiality (only authorized access), integrity (information remains accurate) and availability (systems remain usable). Always get written permission before security testing.'],
 networking:['Networking essentials','An IP address identifies a device on a network. DNS translates domain names into addresses. Routers move traffic between networks, while ports identify services on a device. Practise by mapping your own home lab.'],
