@@ -40,7 +40,8 @@ label{font-size:.88rem;color:#c0d2c8;font-weight:700}
 .hidden{display:none}
 footer{position:relative;padding:34px 18px;text-align:center;border-top:1px solid var(--line);color:var(--muted);background:#050d09}
 .quiz-option{display:block;width:100%;text-align:left;margin:10px 0;background:#10241c;color:var(--ink);border:1px solid var(--line);border-radius:13px}
-#lessonPanel{margin-top:22px;border-color:rgba(70,240,165,.45)}\n.progress-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+#lessonPanel{margin-top:22px;border-color:rgba(70,240,165,.45)}
+.progress-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 #adminStats .card{padding:18px}
 @media(max-width:600px){header{padding:13px 15px;align-items:flex-start}.brand{width:100%}nav{gap:7px}nav a.btn{font-size:.8rem;padding:9px 12px}main{padding:20px 15px 42px}.hero{padding:54px 0 48px}.card{padding:20px;border-radius:18px}.section{margin:48px 0}.lesson{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
@@ -84,7 +85,8 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 const SUPABASE_URL='https://tgbtdbfhmgzsipervxld.supabase.co';
 const SUPABASE_KEY='sb_publishable_iNkrek9aGIbhTHAz1Fw7Eg_6SRsaOdr';
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let currentLessonSlug=null;\nfunction completedLessons(){try{return JSON.parse(localStorage.getItem('bwayo_completed_'+(supabaseClient.auth.getSession? 'user':'guest'))||'[]')}catch{return []}}\nfunction showAuthMessage(message,isError=false){
+let currentLessonSlug=null;
+function showAuthMessage(message,isError=false){
  const el=document.getElementById('authResult');el.textContent=message;el.style.color=isError?'#ffb4ab':'#a9bad0';
 }
 async function registerStudent(){
@@ -102,10 +104,10 @@ async function registerStudent(){
 async function signInStudent(){
  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
  if(!email||!password){showAuthMessage('Enter your email and password to sign in.',true);return;}
- try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;showAuthMessage('Signed in successfully as '+(data.user?.email||email)+'.');await refreshAdminVisibility();await refreshStudentAccess();}
+ try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;showAuthMessage('Signed in successfully as '+(data.user?.email||email)+'.');await refreshAdminVisibility();await refreshStudentAccess();await refreshStudentDashboard();}
  catch(error){showAuthMessage(error.message||'Sign-in failed. Check your email, password and confirmation status.',true);}
 }
-async function signOutStudent(){try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;document.getElementById('admin').classList.add('hidden');document.getElementById('adminNav').classList.add('hidden');document.getElementById('lessonAccessStatus').textContent='Sign in and get an approved active membership to open lessons.';closeLesson();showAuthMessage('Signed out.');}catch(error){showAuthMessage(error.message||'Could not sign out.',true);}}
+async function signOutStudent(){try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;document.getElementById('admin').classList.add('hidden');document.getElementById('adminNav').classList.add('hidden');document.getElementById('lessonAccessStatus').textContent='Sign in and get an approved active membership to open lessons.';closeLesson();await refreshStudentDashboard();showAuthMessage('Signed out.');}catch(error){showAuthMessage(error.message||'Could not sign out.',true);}}
 
 async function submitPayment(){
  const {data:{user}}=await supabaseClient.auth.getUser();
@@ -180,7 +182,7 @@ async function refreshAdminVisibility(){
   console.error('Could not refresh administrator visibility:',error);
  }
 }
-supabaseClient.auth.onAuthStateChange(()=>{setTimeout(()=>{refreshAdminVisibility();refreshStudentAccess();},0);});
+supabaseClient.auth.onAuthStateChange(()=>{setTimeout(()=>{refreshAdminVisibility();refreshStudentAccess();refreshStudentDashboard();},0);});
 refreshAdminVisibility();
 refreshStudentAccess();
 
@@ -197,7 +199,8 @@ async function refreshStudentAccess(){
  else{status.textContent='No active approved membership found. Submit your payment and wait for administrator approval to unlock lessons.';}
 }
 async function showLesson(k){
- const panel=document.getElementById('lessonPanel'), title=document.getElementById('lessonTitle'), body=document.getElementById('lessonText');\n currentLessonSlug=k;
+ const panel=document.getElementById('lessonPanel'), title=document.getElementById('lessonTitle'), body=document.getElementById('lessonText');
+ currentLessonSlug=k;
  const {data:{user}}=await supabaseClient.auth.getUser();
  if(!user){alert('Please sign in first. Lessons open after payment approval.');document.getElementById('account').scrollIntoView({behavior:'smooth'});return;}
  title.textContent='Checking membership...';body.textContent='';panel.classList.remove('hidden');
@@ -240,7 +243,8 @@ async function refreshStudentDashboard(){
  lessons.innerHTML='';
  labels.forEach(([slug,label])=>{const row=document.createElement('div');row.className='progress-row';const txt=document.createElement('span');txt.textContent=label;const state=document.createElement('strong');state.textContent=done.includes(slug)?'Completed ✓':'Not completed';row.append(txt,state);lessons.appendChild(row);});
 }
-\nfunction closeLesson(){document.getElementById('lessonPanel').classList.add('hidden')}
+
+function closeLesson(){document.getElementById('lessonPanel').classList.add('hidden')}
 function answer(ok){document.getElementById('quizResult').textContent=ok?'Correct. Always obtain permission and agree on scope before testing.':'Not quite. Ethical testing requires clear permission and an agreed scope.'}
 function demoLogin(){document.getElementById('loginResult').textContent='Demo only: no account was created and no password was sent or saved. Secure registration will be added with a backend.'}
 </script></body></html>
