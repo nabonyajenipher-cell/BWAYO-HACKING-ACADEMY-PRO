@@ -40,7 +40,7 @@ label{font-size:.88rem;color:#c0d2c8;font-weight:700}
 .hidden{display:none}
 footer{position:relative;padding:34px 18px;text-align:center;border-top:1px solid var(--line);color:var(--muted);background:#050d09}
 .quiz-option{display:block;width:100%;text-align:left;margin:10px 0;background:#10241c;color:var(--ink);border:1px solid var(--line);border-radius:13px}
-#lessonPanel{margin-top:22px;border-color:rgba(70,240,165,.45)}
+#lessonPanel{margin-top:22px;border-color:rgba(70,240,165,.45)}\n.progress-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 #adminStats .card{padding:18px}
 @media(max-width:600px){header{padding:13px 15px;align-items:flex-start}.brand{width:100%}nav{gap:7px}nav a.btn{font-size:.8rem;padding:9px 12px}main{padding:20px 15px 42px}.hero{padding:54px 0 48px}.card{padding:20px;border-radius:18px}.section{margin:48px 0}.lesson{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
@@ -58,7 +58,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 <article class="card"><div class="tag">APPLICATION • 04</div><h2>Web application security assessment</h2><p>Assess authentication, authorization, input handling and session controls in authorized test applications.</p><button onclick="showLesson('web')">Open lesson</button></article>
 <article class="card"><div class="tag">IDENTITY • 05</div><h2>Identity and access security</h2><p>Evaluate least privilege, MFA coverage, account lifecycle and recovery controls.</p><button onclick="showLesson('passwords')">Open lesson</button></article>
 <article class="card"><div class="tag">FIELD • 06</div><h2>Professional security assessment</h2><p>Define rules of engagement, validate findings safely, preserve evidence and deliver remediation reports.</p><button onclick="showLesson('testing')">Open lesson</button></article>
-</div><article class="card hidden" id="lessonPanel"><div class="lesson"><h2 id="lessonTitle">Lesson</h2><button class="secondary" onclick="closeLesson()">Close</button></div><p class="muted" id="lessonText"></p></article></section>
+</div><article class="card hidden" id="lessonPanel"><div class="lesson"><h2 id="lessonTitle">Lesson</h2><button class="secondary" onclick="closeLesson()">Close</button></div><p class="muted" id="lessonText"></p><button id="lessonCompleteButton" class="secondary" onclick="markLessonComplete()">Mark lesson complete</button></article></section>
 <section class="section" id="quiz"><div class="eyebrow">Check your knowledge</div><article class="card"><h2>Quick quiz</h2><p>What should you have before testing a website's security?</p><button class="quiz-option" onclick="answer(false)">A. A guess that the owner will not mind</button><button class="quiz-option" onclick="answer(true)">B. Clear permission and an agreed scope</button><button class="quiz-option" onclick="answer(false)">C. Another person's password</button><p id="quizResult" class="muted" aria-live="polite"></p></article></section>
 <section class="section" id="membership"><div class="eyebrow">Student membership</div><article class="card"><h2>UGX 1,000 / month</h2><p class="muted">Your lessons unlock after an administrator verifies your UGX 1,000 MTN Mobile Money payment. Approved membership lasts 30 days.</p><div class="notice">Secure admin-side payment review is configured. Send UGX 1,000 to the academy's MTN Mobile Money number: <strong>+256 794 704 738</strong>. Enter your own payer number and the transaction reference below. Never share your MoMo PIN or OTP.</div></article></section>
 <section class="section" id="account"><div class="eyebrow">Secure student account</div><article class="card">
@@ -68,6 +68,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 <label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters">
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="registerStudent()">Create account</button><button class="secondary" onclick="signInStudent()">Sign in</button><button class="secondary" onclick="signOutStudent()">Sign out</button></div>
 <p id="authResult" class="muted" aria-live="polite">Not signed in.</p></article></section>
+<section class="section" id="studentDashboard"><div class="eyebrow">STUDENT CONTROL CENTER</div><article class="card"><div class="lesson"><div><h2>My learning dashboard</h2><p class="muted">Your membership, payments and course progress.</p></div><button class="secondary" onclick="refreshStudentDashboard()">Refresh</button></div><div class="grid"><div class="card"><div class="tag">ACCOUNT</div><h3 id="dashStudentName">—</h3><p id="dashStudentEmail" class="muted">Sign in to view your account.</p></div><div class="card"><div class="tag">MEMBERSHIP</div><h3 id="dashMembership">Not active</h3><p id="dashExpiry" class="muted">No active membership found.</p></div><div class="card"><div class="tag">COURSE PROGRESS</div><h3 id="dashProgress">0 / 6 lessons</h3><p class="muted">Completed lessons saved on this device.</p></div></div><h3>My recent payments</h3><div id="dashPayments" class="muted">Sign in to view payment history.</div><h3>Lesson progress</h3><div id="dashLessons" class="muted">Open a lesson to begin learning.</div></article></section>
 <section class="section" id="pay"><div class="eyebrow">Manual MTN Mobile Money</div><article class="card">
 <h2>Pay UGX 1,000 for one month</h2><p class="muted">Send UGX 1,000 using MTN Mobile Money to <strong>+256 794 704 738</strong>. After paying, keep your transaction ID, sign in, and submit the phone number you paid from plus the transaction reference. Access stays locked until an administrator verifies the payment.</p>
 <p class="notice">After sending UGX 1,000 to the number above, submit your payer phone number and transaction reference. Lessons unlock automatically after the administrator approves the payment. Never enter your MoMo PIN or OTP on this site.</p>
@@ -83,7 +84,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 const SUPABASE_URL='https://tgbtdbfhmgzsipervxld.supabase.co';
 const SUPABASE_KEY='sb_publishable_iNkrek9aGIbhTHAz1Fw7Eg_6SRsaOdr';
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-function showAuthMessage(message,isError=false){
+let currentLessonSlug=null;\nfunction completedLessons(){try{return JSON.parse(localStorage.getItem('bwayo_completed_'+(supabaseClient.auth.getSession? 'user':'guest'))||'[]')}catch{return []}}\nfunction showAuthMessage(message,isError=false){
  const el=document.getElementById('authResult');el.textContent=message;el.style.color=isError?'#ffb4ab':'#a9bad0';
 }
 async function registerStudent(){
@@ -93,7 +94,7 @@ async function registerStudent(){
  try{
   const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:name}}});
   if(error)throw error;
-  if(data.session){showAuthMessage('Account created and signed in.');await refreshAdminVisibility();await refreshStudentAccess();}
+  if(data.session){showAuthMessage('Account created and signed in.');await refreshAdminVisibility();await refreshStudentAccess();await refreshStudentDashboard();}
   else{showAuthMessage('Account request received, but no active session was returned. Check that Confirm email is OFF in Supabase Authentication settings, then try registering again. If this email was already registered, use Sign in instead.',true);}
  }catch(error){showAuthMessage(error.message||'Registration failed. Check your connection and try again.',true);}
  finally{if(button){button.disabled=false;button.textContent='Create account';}}
@@ -196,16 +197,50 @@ async function refreshStudentAccess(){
  else{status.textContent='No active approved membership found. Submit your payment and wait for administrator approval to unlock lessons.';}
 }
 async function showLesson(k){
- const panel=document.getElementById('lessonPanel'), title=document.getElementById('lessonTitle'), body=document.getElementById('lessonText');
+ const panel=document.getElementById('lessonPanel'), title=document.getElementById('lessonTitle'), body=document.getElementById('lessonText');\n currentLessonSlug=k;
  const {data:{user}}=await supabaseClient.auth.getUser();
  if(!user){alert('Please sign in first. Lessons open after payment approval.');document.getElementById('account').scrollIntoView({behavior:'smooth'});return;}
  title.textContent='Checking membership...';body.textContent='';panel.classList.remove('hidden');
  const {data,error}=await supabaseClient.from('academy_lessons').select('title,content').eq('slug',k).maybeSingle();
  if(error){title.textContent='Unable to open lesson';body.textContent=error.message;return;}
  if(!data){title.textContent='Membership required';body.textContent='This lesson is locked. Submit your UGX 1,000 payment and wait for an administrator to approve it. If you have already paid, refresh your membership status or sign out and back in.';await refreshStudentAccess();return;}
- title.textContent=data.title;body.textContent=data.content;panel.scrollIntoView({behavior:'smooth'});
+ title.textContent=data.title;body.textContent=data.content;document.getElementById('lessonCompleteButton').textContent=isLessonComplete(k)?'Completed ✓':'Mark lesson complete';panel.scrollIntoView({behavior:'smooth'});
 }
-function closeLesson(){document.getElementById('lessonPanel').classList.add('hidden')}
+
+function progressKey(userId){return 'bwayo_completed_'+userId;}
+function getCompleted(userId){try{return JSON.parse(localStorage.getItem(progressKey(userId))||'[]')}catch{return []}}
+function isLessonComplete(slug){return window._bwayoUserId?getCompleted(window._bwayoUserId).includes(slug):false;}
+async function markLessonComplete(){
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ if(!user||!currentLessonSlug)return;
+ window._bwayoUserId=user.id;
+ const done=getCompleted(user.id);
+ if(!done.includes(currentLessonSlug))done.push(currentLessonSlug);
+ localStorage.setItem(progressKey(user.id),JSON.stringify(done));
+ document.getElementById('lessonCompleteButton').textContent='Completed ✓';
+ await refreshStudentDashboard();
+}
+async function refreshStudentDashboard(){
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ const name=document.getElementById('dashStudentName'),email=document.getElementById('dashStudentEmail');
+ const membership=document.getElementById('dashMembership'),expiry=document.getElementById('dashExpiry');
+ const payments=document.getElementById('dashPayments'),lessons=document.getElementById('dashLessons');
+ if(!user){name.textContent='Not signed in';email.textContent='Sign in to view your dashboard.';membership.textContent='Locked';expiry.textContent='Sign in to check membership.';payments.textContent='Sign in to view payment history.';lessons.textContent='Sign in to track lessons.';document.getElementById('dashProgress').textContent='0 / 6 lessons';return;}
+ window._bwayoUserId=user.id;
+ const {data:profile}=await supabaseClient.from('profiles').select('display_name').eq('id',user.id).maybeSingle();
+ name.textContent=profile?.display_name||user.user_metadata?.display_name||'Student';email.textContent=user.email||'';
+ const now=new Date().toISOString();
+ const {data:active}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').lte('starts_at',now).gt('expires_at',now).order('expires_at',{ascending:false}).limit(1).maybeSingle();
+ if(active){membership.textContent='ACTIVE';expiry.textContent='Expires '+new Date(active.expires_at).toLocaleString();}
+ else{membership.textContent='NOT ACTIVE';expiry.textContent='Pay UGX 1,000 and await administrator approval.';}
+ const {data:payData,error:payError}=await supabaseClient.from('payment_submissions').select('amount,currency,transaction_reference,status,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(5);
+ payments.textContent=payError?'Unable to load payments.':(payData?.length?payData.map(p=>p.currency+' '+p.amount+' • '+p.status+' • '+p.transaction_reference+' • '+new Date(p.created_at).toLocaleDateString()).join(' | '):'No payment submissions yet.');
+ const labels=[['foundations','Security foundations'],['networking','Networking essentials'],['linux','Linux command line'],['web','Web security basics'],['passwords','Password and account safety'],['testing','Authorized security testing']];
+ const done=getCompleted(user.id);document.getElementById('dashProgress').textContent=done.length+' / '+labels.length+' lessons';
+ lessons.innerHTML='';
+ labels.forEach(([slug,label])=>{const row=document.createElement('div');row.className='progress-row';const txt=document.createElement('span');txt.textContent=label;const state=document.createElement('strong');state.textContent=done.includes(slug)?'Completed ✓':'Not completed';row.append(txt,state);lessons.appendChild(row);});
+}
+\nfunction closeLesson(){document.getElementById('lessonPanel').classList.add('hidden')}
 function answer(ok){document.getElementById('quizResult').textContent=ok?'Correct. Always obtain permission and agree on scope before testing.':'Not quite. Ethical testing requires clear permission and an agreed scope.'}
 function demoLogin(){document.getElementById('loginResult').textContent='Demo only: no account was created and no password was sent or saved. Secure registration will be added with a backend.'}
 </script></body></html>
