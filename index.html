@@ -61,6 +61,8 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 <article class="card"><div class="tag">FIELD • 06</div><h2>Professional security assessment</h2><p>Define rules of engagement, validate findings safely, preserve evidence and deliver remediation reports.</p><button onclick="showLesson('testing')">Open lesson</button></article>
 </div><article class="card hidden" id="lessonPanel"><div class="lesson"><h2 id="lessonTitle">Lesson</h2><button class="secondary" onclick="closeLesson()">Close</button></div><p class="muted" id="lessonText"></p><button id="lessonCompleteButton" class="secondary" onclick="markLessonComplete()">Mark lesson complete</button></article></section>
 <section class="section" id="quiz"><div class="eyebrow">Check your knowledge</div><article class="card"><h2>Quick quiz</h2><p>What should you have before testing a website's security?</p><button class="quiz-option" onclick="answer(false)">A. A guess that the owner will not mind</button><button class="quiz-option" onclick="answer(true)">B. Clear permission and an agreed scope</button><button class="quiz-option" onclick="answer(false)">C. Another person's password</button><p id="quizResult" class="muted" aria-live="polite"></p></article></section>
+
+<section class="section" id="finalExam"><div class="eyebrow">FINAL ASSESSMENT</div><article class="card"><h2>Cybersecurity Foundations — Final Exam</h2><p class="muted">10 questions • Pass mark: 70% • One submitted attempt is recorded each time. Your answers are graded on the server; the answer key is not sent to the browser.</p><p id="examAccess" class="notice">Sign in with an active membership to take the exam. Administrators may also take it.</p><form id="examForm"><div id="examQuestions"></div><button id="submitExamButton" type="submit">Submit exam</button></form><p id="examResult" class="muted" aria-live="polite"></p><h3>My exam history</h3><button class="secondary" type="button" onclick="loadExamHistory()">Refresh exam history</button><div id="examHistory" class="muted">Sign in to view attempts.</div></article></section>
 <section class="section" id="membership"><div class="eyebrow">Student membership</div><article class="card"><h2>UGX 1,000 / month</h2><p class="muted">Your lessons unlock after an administrator verifies your UGX 1,000 MTN Mobile Money payment. Approved membership lasts 30 days.</p><div class="notice">Secure admin-side payment review is configured. Send UGX 1,000 to the academy's MTN Mobile Money number: <strong>+256 794 704 738</strong>. Enter your own payer number and the transaction reference below. Never share your MoMo PIN or OTP.</div></article></section>
 <section class="section" id="account"><div class="eyebrow">Secure student account</div><article class="card">
 <h2>Register or sign in</h2><p class="muted">Create your student account or sign in. Use a real email and a strong password.</p>
@@ -286,6 +288,68 @@ async function issueCertificate(){
 }
 function printCertificate(){document.body.classList.add('print-certificate');window.print();document.body.classList.remove('print-certificate');}
 function closeLesson(){document.getElementById('lessonPanel').classList.add('hidden')}
+
+const examItems=[
+ {q:"Before testing a system, what must you have?",o:["A guess that the owner agrees","Written permission and a defined scope","A public IP address","A password from another user"]},
+ {q:"What is the principle of least privilege?",o:["Give everyone administrator access","Disable account logging","Grant only the access needed for a task","Reuse one shared account"]},
+ {q:"Which protocol securely protects web traffic in transit?",o:["HTTP","FTP","Telnet","HTTPS"]},
+ {q:"What is the safest first step when investigating a suspicious alert?",o:["Delete the logs","Preserve evidence and follow the incident process","Reboot every server","Post credentials in chat"]},
+ {q:"Why should software and operating systems be patched?",o:["To remove audit trails","To make passwords public","To fix known vulnerabilities and bugs","To disable backups"]},
+ {q:"Which control adds a second proof of identity beyond a password?",o:["MFA","A longer username","Public Wi-Fi","A shared account"]},
+ {q:"What does a firewall primarily do?",o:["Guarantee a system cannot be hacked","Encrypt every stored file","Create user accounts","Filter network traffic using rules"]},
+ {q:"What should a good vulnerability report include?",o:["Only a screenshot","Scope, evidence, impact and remediation","The tester's personal passwords","Unverified accusations"]},
+ {q:"What is a packet capture useful for?",o:["Changing account roles","Issuing certificates","Inspecting network communications","Resetting a user's password"]},
+ {q:"How should credentials be stored?",o:["In a public source-code file","In a shared spreadsheet","In plain text in a chat","Using a secure secrets manager and appropriate access controls"]}
+];
+function renderExam(){
+ const root=document.getElementById('examQuestions');if(!root)return;root.innerHTML='';
+ examItems.forEach((item,i)=>{
+  const field=document.createElement('fieldset');field.className='card';field.style.margin='14px 0';field.style.border='1px solid var(--line)';
+  const legend=document.createElement('legend');legend.textContent=(i+1)+'. '+item.q;legend.style.fontWeight='800';field.appendChild(legend);
+  item.o.forEach((option,j)=>{
+   const label=document.createElement('label');label.style.display='block';label.style.padding='8px 0';label.style.fontWeight='500';
+   const radio=document.createElement('input');radio.type='radio';radio.name='exam_'+i;radio.value=String(j);radio.required=true;radio.style.width='auto';radio.style.margin='0 9px 0 0';
+   label.append(radio,document.createTextNode(option));field.appendChild(label);
+  });root.appendChild(field);
+ });
+}
+async function submitAcademyExam(event){
+ event.preventDefault();
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ const result=document.getElementById('examResult'),button=document.getElementById('submitExamButton');
+ if(!user){result.textContent='Sign in first. An active membership is required.';return;}
+ const answers=[];
+ for(let i=0;i<examItems.length;i++){
+  const selected=document.querySelector('input[name="exam_'+i+'"]:checked');
+  if(!selected){result.textContent='Please answer all 10 questions before submitting.';return;}
+  answers.push(Number(selected.value));
+ }
+ button.disabled=true;button.textContent='Grading securely...';result.textContent='Your answers are being graded on the server.';
+ try{
+  const {data,error}=await supabaseClient.rpc('submit_academy_exam',{p_answers:answers});
+  if(error)throw error;
+  result.textContent='Result: '+data.score+' / '+data.total_questions+' ('+data.percentage+'%). '+(data.passed?'PASS — you reached the 70% pass mark.':'NOT PASSED — you need at least 70%.')+' Your attempt has been saved.';
+  await loadExamHistory();
+ }catch(error){result.textContent=error.message||'The exam could not be submitted. Check your membership and try again.';}
+ finally{button.disabled=false;button.textContent='Submit exam';}
+}
+async function loadExamHistory(){
+ const box=document.getElementById('examHistory');const {data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){box.textContent='Sign in to view attempts.';return;}
+ const {data,error}=await supabaseClient.from('academy_exam_attempts').select('score,total_questions,passed,attempted_at').eq('user_id',user.id).order('attempted_at',{ascending:false}).limit(10);
+ if(error){box.textContent='Could not load exam history: '+error.message;return;}
+ box.innerHTML='';
+ if(!data?.length){box.textContent='No exam attempts yet.';return;}
+ data.forEach((attempt)=>{
+  const row=document.createElement('div');row.className='progress-row';
+  const left=document.createElement('span');left.textContent=new Date(attempt.attempted_at).toLocaleString();
+  const right=document.createElement('strong');right.textContent=attempt.score+'/'+attempt.total_questions+' • '+(attempt.passed?'PASS':'NOT PASSED');
+  row.append(left,right);box.appendChild(row);
+ });
+}
+document.getElementById('examForm')?.addEventListener('submit',submitAcademyExam);
+renderExam();
+
 function answer(ok){document.getElementById('quizResult').textContent=ok?'Correct. Always obtain permission and agree on scope before testing.':'Not quite. Ethical testing requires clear permission and an agreed scope.'}
 function demoLogin(){document.getElementById('loginResult').textContent='Demo only: no account was created and no password was sent or saved. Secure registration will be added with a backend.'}
 </script></body></html>
