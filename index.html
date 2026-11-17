@@ -51,7 +51,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 <main>
 <section class="hero"><div class="eyebrow">Learn • Practise • Defend</div><h1>Build skills. Protect the digital world.</h1><p class="muted">An advanced training environment for authorized security assessment, network defense, Linux operations, web application security and incident response. Work only within systems you own or have explicit permission to test. Learn only on systems you own or have clear permission to test.</p><a class="btn" href="#courses">Explore lessons</a></section>
 <section class="grid"><article class="card"><div class="tag">01 / OPERATIONS</div><h2>Security operations</h2><p>Build disciplined workflows for asset discovery, threat modeling and defensive validation.</p></article><article class="card"><div class="tag">02 / ASSESSMENT</div><h2>Authorized assessment</h2><p>Apply repeatable methodology in isolated labs with documented scope and evidence.</p></article><article class="card"><div class="tag">03 / RESPONSE</div><h2>Detection & response</h2><p>Develop monitoring, hardening, triage and recovery capabilities.</p></article></section>
-<section class="section" id="courses"><div class="eyebrow">Learning path</div><h2>Advanced training modules</h2><div class="grid">
+<section class="section" id="courses"><div class="eyebrow">Learning path</div><h2>Advanced training modules</h2><p id="lessonAccessStatus" class="notice" aria-live="polite">Sign in and get an approved active membership to open lessons. Admin accounts can also open lessons.</p><div class="grid">
 <article class="card"><div class="tag">CORE • 01</div><h2>Security architecture & threat modeling</h2><p>Map attack surfaces, assess trust boundaries, prioritize threats and document risk.</p><button onclick="showLesson('foundations')">Open lesson</button></article>
 <article class="card"><div class="tag">NETWORK • 02</div><h2>Network traffic analysis</h2><p>Interpret packet captures, DNS behavior, routing paths and service exposure in a lab.</p><button onclick="showLesson('networking')">Open lesson</button></article>
 <article class="card"><div class="tag">SYSTEMS • 03</div><h2>Linux hardening & system operations</h2><p>Audit permissions, services, logs and system configuration in controlled environments.</p><button onclick="showLesson('linux')">Open lesson</button></article>
@@ -60,7 +60,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 <article class="card"><div class="tag">FIELD • 06</div><h2>Professional security assessment</h2><p>Define rules of engagement, validate findings safely, preserve evidence and deliver remediation reports.</p><button onclick="showLesson('testing')">Open lesson</button></article>
 </div><article class="card hidden" id="lessonPanel"><div class="lesson"><h2 id="lessonTitle">Lesson</h2><button class="secondary" onclick="closeLesson()">Close</button></div><p class="muted" id="lessonText"></p></article></section>
 <section class="section" id="quiz"><div class="eyebrow">Check your knowledge</div><article class="card"><h2>Quick quiz</h2><p>What should you have before testing a website's security?</p><button class="quiz-option" onclick="answer(false)">A. A guess that the owner will not mind</button><button class="quiz-option" onclick="answer(true)">B. Clear permission and an agreed scope</button><button class="quiz-option" onclick="answer(false)">C. Another person's password</button><p id="quizResult" class="muted" aria-live="polite"></p></article></section>
-<section class="section" id="membership"><div class="eyebrow">Student membership</div><article class="card"><h2>UGX 1,000 / month</h2><p class="muted">Planned membership price. Course access should be unlocked only after a payment provider confirms payment securely on the server.</p><div class="notice">Secure admin-side payment review is configured. Send UGX 1,000 to the academy's MTN Mobile Money number: <strong>+256 794 704 738</strong>. Enter your own payer number and the transaction reference below. Never share your MoMo PIN or OTP.</div></article></section>
+<section class="section" id="membership"><div class="eyebrow">Student membership</div><article class="card"><h2>UGX 1,000 / month</h2><p class="muted">Your lessons unlock after an administrator verifies your UGX 1,000 MTN Mobile Money payment. Approved membership lasts 30 days.</p><div class="notice">Secure admin-side payment review is configured. Send UGX 1,000 to the academy's MTN Mobile Money number: <strong>+256 794 704 738</strong>. Enter your own payer number and the transaction reference below. Never share your MoMo PIN or OTP.</div></article></section>
 <section class="section" id="account"><div class="eyebrow">Secure student account</div><article class="card">
 <h2>Register or sign in</h2><p class="muted">Create your student account or sign in. Use a real email and a strong password.</p>
 <label for="authName">Full name (for registration)</label><input id="authName" autocomplete="name" placeholder="Your full name">
@@ -70,7 +70,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 <p id="authResult" class="muted" aria-live="polite">Not signed in.</p></article></section>
 <section class="section" id="pay"><div class="eyebrow">Manual MTN Mobile Money</div><article class="card">
 <h2>Pay UGX 1,000 for one month</h2><p class="muted">Send UGX 1,000 using MTN Mobile Money to <strong>+256 794 704 738</strong>. After paying, keep your transaction ID, sign in, and submit the phone number you paid from plus the transaction reference. Access stays locked until an administrator verifies the payment.</p>
-<p class="notice">Payment instructions will be published only after the merchant recipient and secure review process are verified. Never enter your MoMo PIN or OTP on this site.</p>
+<p class="notice">After sending UGX 1,000 to the number above, submit your payer phone number and transaction reference. Lessons unlock automatically after the administrator approves the payment. Never enter your MoMo PIN or OTP on this site.</p>
 <label for="payerPhone">Phone number you paid from</label><input id="payerPhone" type="tel" placeholder="07XXXXXXXX">
 <label for="transactionRef">MTN transaction ID / reference</label><input id="transactionRef" placeholder="Enter the transaction reference">
 <button onclick="submitPayment()">Submit payment for verification</button><p id="paymentResult" class="muted" aria-live="polite"></p>
@@ -93,7 +93,7 @@ async function registerStudent(){
  try{
   const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{display_name:name}}});
   if(error)throw error;
-  if(data.session){showAuthMessage('Account created and signed in. You can now use the academy.');await refreshAdminVisibility();}
+  if(data.session){showAuthMessage('Account created and signed in.');await refreshAdminVisibility();await refreshStudentAccess();}
   else{showAuthMessage('Account request received, but no active session was returned. Check that Confirm email is OFF in Supabase Authentication settings, then try registering again. If this email was already registered, use Sign in instead.',true);}
  }catch(error){showAuthMessage(error.message||'Registration failed. Check your connection and try again.',true);}
  finally{if(button){button.disabled=false;button.textContent='Create account';}}
@@ -101,10 +101,10 @@ async function registerStudent(){
 async function signInStudent(){
  const email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value;
  if(!email||!password){showAuthMessage('Enter your email and password to sign in.',true);return;}
- try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;showAuthMessage('Signed in successfully as '+(data.user?.email||email)+'.');await refreshAdminVisibility();}
+ try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;showAuthMessage('Signed in successfully as '+(data.user?.email||email)+'.');await refreshAdminVisibility();await refreshStudentAccess();}
  catch(error){showAuthMessage(error.message||'Sign-in failed. Check your email, password and confirmation status.',true);}
 }
-async function signOutStudent(){try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;document.getElementById('admin').classList.add('hidden');document.getElementById('adminNav').classList.add('hidden');showAuthMessage('Signed out.');}catch(error){showAuthMessage(error.message||'Could not sign out.',true);}}
+async function signOutStudent(){try{const {error}=await supabaseClient.auth.signOut();if(error)throw error;document.getElementById('admin').classList.add('hidden');document.getElementById('adminNav').classList.add('hidden');document.getElementById('lessonAccessStatus').textContent='Sign in and get an approved active membership to open lessons.';closeLesson();showAuthMessage('Signed out.');}catch(error){showAuthMessage(error.message||'Could not sign out.',true);}}
 
 async function submitPayment(){
  const {data:{user}}=await supabaseClient.auth.getUser();
@@ -179,18 +179,33 @@ async function refreshAdminVisibility(){
   console.error('Could not refresh administrator visibility:',error);
  }
 }
-supabaseClient.auth.onAuthStateChange(()=>{setTimeout(refreshAdminVisibility,0);});
+supabaseClient.auth.onAuthStateChange(()=>{setTimeout(()=>{refreshAdminVisibility();refreshStudentAccess();},0);});
 refreshAdminVisibility();
+refreshStudentAccess();
 
-const lessons={
-foundations:['Cybersecurity foundations','Cybersecurity protects systems, networks and data. The CIA triad means confidentiality (only authorized access), integrity (information remains accurate) and availability (systems remain usable). Always get written permission before security testing.'],
-networking:['Networking essentials','An IP address identifies a device on a network. DNS translates domain names into addresses. Routers move traffic between networks, while ports identify services on a device. Practise by mapping your own home lab.'],
-linux:['Linux command line','Linux is widely used in servers and security work. Learn pwd to show your location, ls to list files, cd to change folders, mkdir to create a folder and man to read command manuals. Use a disposable lab and understand commands before running them.'],
-web:['Web security basics','Web applications should validate input, enforce authorization on the server, protect sessions and use HTTPS. Keep software updated and avoid exposing secrets in browser code. Study vulnerabilities in intentionally vulnerable training apps only.'],
-passwords:['Password and account safety','Use a unique long password for every account, store it in a reputable password manager, enable multi-factor authentication and keep recovery options current. Never share one-time codes.'],
-testing:['Authorized security testing','Get explicit written permission, define the systems and dates in scope, agree on prohibited actions, use a safe test plan, record evidence without exposing personal data and report findings privately with remediation advice.']
-};
-function showLesson(k){document.getElementById('lessonTitle').textContent=lessons[k][0];document.getElementById('lessonText').textContent=lessons[k][1];document.getElementById('lessonPanel').classList.remove('hidden');document.getElementById('lessonPanel').scrollIntoView({behavior:'smooth'});}
+async function refreshStudentAccess(){
+ const status=document.getElementById('lessonAccessStatus');
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){status.textContent='Sign in and get an approved active membership to open lessons.';return;}
+ const {data:profile}=await supabaseClient.from('profiles').select('role').eq('id',user.id).maybeSingle();
+ if(profile?.role==='admin'){status.textContent='Administrator access: lessons are available.';return;}
+ const {data,error}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').gt('starts_at',new Date(Date.now()+86400000).toISOString()).limit(1);
+ // The actual entitlement check is enforced by database row-level security when lesson content is requested.
+ const {data:active,error:membershipError}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').gt('expires_at',new Date().toISOString()).order('expires_at',{ascending:false}).limit(1).maybeSingle();
+ if(membershipError){status.textContent='Could not check membership right now. Refresh and try again.';return;}
+ if(active){status.textContent='Membership active until '+new Date(active.expires_at).toLocaleString()+'. Your lessons are unlocked.';}
+ else{status.textContent='No active approved membership found. Submit your payment and wait for administrator approval to unlock lessons.';}
+}
+async function showLesson(k){
+ const panel=document.getElementById('lessonPanel'), title=document.getElementById('lessonTitle'), body=document.getElementById('lessonText');
+ const {data:{user}}=await supabaseClient.auth.getUser();
+ if(!user){alert('Please sign in first. Lessons open after payment approval.');document.getElementById('account').scrollIntoView({behavior:'smooth'});return;}
+ title.textContent='Checking membership...';body.textContent='';panel.classList.remove('hidden');
+ const {data,error}=await supabaseClient.from('academy_lessons').select('title,content').eq('slug',k).maybeSingle();
+ if(error){title.textContent='Unable to open lesson';body.textContent=error.message;return;}
+ if(!data){title.textContent='Membership required';body.textContent='This lesson is locked. Submit your UGX 1,000 payment and wait for an administrator to approve it. If you have already paid, refresh your membership status or sign out and back in.';await refreshStudentAccess();return;}
+ title.textContent=data.title;body.textContent=data.content;panel.scrollIntoView({behavior:'smooth'});
+}
 function closeLesson(){document.getElementById('lessonPanel').classList.add('hidden')}
 function answer(ok){document.getElementById('quizResult').textContent=ok?'Correct. Always obtain permission and agree on scope before testing.':'Not quite. Ethical testing requires clear permission and an agreed scope.'}
 function demoLogin(){document.getElementById('loginResult').textContent='Demo only: no account was created and no password was sent or saved. Secure registration will be added with a backend.'}
