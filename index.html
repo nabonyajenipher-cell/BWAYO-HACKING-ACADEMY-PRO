@@ -45,7 +45,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 #adminStats .card{padding:18px}
 @media(max-width:600px){header{padding:13px 15px;align-items:flex-start}.brand{width:100%}nav{gap:7px}nav a.btn{font-size:.8rem;padding:9px 12px}main{padding:20px 15px 42px}.hero{padding:54px 0 48px}.card{padding:20px;border-radius:18px}.section{margin:48px 0}.lesson{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
-</style>
+@media print{body.print-certificate *{visibility:hidden!important}body.print-certificate #certificateCard,body.print-certificate #certificateCard *{visibility:visible!important}body.print-certificate #certificateCard{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0;padding:20px;background:white!important;color:#111!important}body.print-certificate #certificateCard .muted{color:#333!important}body.print-certificate #certificateCard div{background:white!important;color:#111!important;border-color:#176b49!important}body.print-certificate #certificateCard h2{color:#176b49!important}}</style>
 </head>
 <body>
 <header><div class="brand">BWAYO <span>HACKING ACADEMY PRO</span></div><nav><a class="btn secondary" href="#courses">Courses</a><a class="btn secondary" href="#membership">Membership</a><a class="btn" href="#account">Register / Sign in</a><a id="adminNav" class="btn hidden" href="#admin">Admin dashboard</a></nav></header>
@@ -69,7 +69,7 @@ footer{position:relative;padding:34px 18px;text-align:center;border-top:1px soli
 <label for="authPassword">Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 8 characters">
 <div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="registerStudent()">Create account</button><button class="secondary" onclick="signInStudent()">Sign in</button><button class="secondary" onclick="signOutStudent()">Sign out</button></div>
 <p id="authResult" class="muted" aria-live="polite">Not signed in.</p></article></section>
-<section class="section" id="studentDashboard"><div class="eyebrow">STUDENT CONTROL CENTER</div><article class="card"><div class="lesson"><div><h2>My learning dashboard</h2><p class="muted">Your membership, payments and course progress.</p></div><button class="secondary" onclick="refreshStudentDashboard()">Refresh</button></div><div class="grid"><div class="card"><div class="tag">ACCOUNT</div><h3 id="dashStudentName">—</h3><p id="dashStudentEmail" class="muted">Sign in to view your account.</p></div><div class="card"><div class="tag">MEMBERSHIP</div><h3 id="dashMembership">Not active</h3><p id="dashExpiry" class="muted">No active membership found.</p></div><div class="card"><div class="tag">COURSE PROGRESS</div><h3 id="dashProgress">0 / 6 lessons</h3><p class="muted">Completed lessons saved on this device.</p></div></div><h3>My recent payments</h3><div id="dashPayments" class="muted">Sign in to view payment history.</div><h3>Lesson progress</h3><div id="dashLessons" class="muted">Open a lesson to begin learning.</div></article></section>
+<section class="section" id="studentDashboard"><div class="eyebrow">STUDENT CONTROL CENTER</div><article class="card"><div class="lesson"><div><h2>My learning dashboard</h2><p class="muted">Your membership, payments and course progress.</p></div><button class="secondary" onclick="refreshStudentDashboard()">Refresh</button></div><div class="grid"><div class="card"><div class="tag">ACCOUNT</div><h3 id="dashStudentName">—</h3><p id="dashStudentEmail" class="muted">Sign in to view your account.</p></div><div class="card"><div class="tag">MEMBERSHIP</div><h3 id="dashMembership">Not active</h3><p id="dashExpiry" class="muted">No active membership found.</p></div><div class="card"><div class="tag">COURSE PROGRESS</div><h3 id="dashProgress">0 / 6 lessons</h3><p class="muted">Completed lessons saved on this device.</p></div></div><h3>My recent payments</h3><div id="dashPayments" class="muted">Sign in to view payment history.</div><h3>Lesson progress</h3><div id="dashLessons" class="muted">Open a lesson to begin learning.</div><h3>Course certificate</h3><p class="muted">Complete all six lessons and keep an active membership to issue your course completion certificate.</p><div id="certificateStatus" class="muted">No certificate issued yet.</div><div id="certificateCard" class="card hidden"><div style="text-align:center;border:2px solid #46f0a5;padding:30px;border-radius:16px;background:#07130f"><div class="tag">BWAYO HACKING ACADEMY PRO</div><h2 style="font-size:2rem;color:#46f0a5">CERTIFICATE OF COMPLETION</h2><p class="muted">This certificate is proudly presented to</p><h1 id="certificateStudentName" style="font-size:2rem;line-height:1.2"></h1><p class="muted">for completing the Cybersecurity Foundations course, consisting of six learning modules.</p><p><strong id="certificateNumber"></strong></p><p id="certificateDate" class="muted"></p><p style="margin-top:28px"><strong>BWAYO EMMANUEL</strong><br><span class="muted">Founder • BWAYO HACKING ACADEMY PRO</span></p></div></div><button id="issueCertificateButton" onclick="issueCertificate()">Issue my certificate</button><button class="secondary" id="printCertificateButton" onclick="printCertificate()" disabled>Print / Save as PDF</button></article></section>
 <section class="section" id="pay"><div class="eyebrow">Manual MTN Mobile Money</div><article class="card">
 <h2>Pay UGX 1,000 for one month</h2><p class="muted">Send UGX 1,000 using MTN Mobile Money to <strong>+256 794 704 738</strong>. After paying, keep your transaction ID, sign in, and submit the phone number you paid from plus the transaction reference. Access stays locked until an administrator verifies the payment.</p>
 <p class="notice">After sending UGX 1,000 to the number above, submit your payer phone number and transaction reference. Lessons unlock automatically after the administrator approves the payment. Never enter your MoMo PIN or OTP on this site.</p>
@@ -216,9 +216,10 @@ function isLessonComplete(slug){return window._bwayoUserId?getCompleted(window._
 async function markLessonComplete(){
  const {data:{user}}=await supabaseClient.auth.getUser();
  if(!user||!currentLessonSlug)return;
+ const {error}=await supabaseClient.from('academy_lesson_completions').insert({user_id:user.id,lesson_slug:currentLessonSlug});
+ if(error&&error.code!=='23505'){alert('Could not save completion: '+error.message);return;}
  window._bwayoUserId=user.id;
- const done=getCompleted(user.id);
- if(!done.includes(currentLessonSlug))done.push(currentLessonSlug);
+ const done=getCompleted(user.id);if(!done.includes(currentLessonSlug))done.push(currentLessonSlug);
  localStorage.setItem(progressKey(user.id),JSON.stringify(done));
  document.getElementById('lessonCompleteButton').textContent='Completed ✓';
  await refreshStudentDashboard();
@@ -228,10 +229,14 @@ async function refreshStudentDashboard(){
  const name=document.getElementById('dashStudentName'),email=document.getElementById('dashStudentEmail');
  const membership=document.getElementById('dashMembership'),expiry=document.getElementById('dashExpiry');
  const payments=document.getElementById('dashPayments'),lessons=document.getElementById('dashLessons');
- if(!user){name.textContent='Not signed in';email.textContent='Sign in to view your dashboard.';membership.textContent='Locked';expiry.textContent='Sign in to check membership.';payments.textContent='Sign in to view payment history.';lessons.textContent='Sign in to track lessons.';document.getElementById('dashProgress').textContent='0 / 6 lessons';return;}
+ const certStatus=document.getElementById('certificateStatus'),certCard=document.getElementById('certificateCard');
+ const issueButton=document.getElementById('issueCertificateButton'),printButton=document.getElementById('printCertificateButton');
+ certCard.classList.add('hidden');printButton.disabled=true;issueButton.disabled=true;
+ if(!user){name.textContent='Not signed in';email.textContent='Sign in to view your account.';membership.textContent='Locked';expiry.textContent='Sign in to check membership.';payments.textContent='Sign in to view payment history.';lessons.textContent='Sign in to track lessons.';document.getElementById('dashProgress').textContent='0 / 6 lessons';certStatus.textContent='Sign in to check certificate eligibility.';return;}
  window._bwayoUserId=user.id;
  const {data:profile}=await supabaseClient.from('profiles').select('display_name').eq('id',user.id).maybeSingle();
- name.textContent=profile?.display_name||user.user_metadata?.display_name||'Student';email.textContent=user.email||'';
+ const studentName=profile?.display_name||user.user_metadata?.display_name||'Student';
+ name.textContent=studentName;email.textContent=user.email||'';
  const now=new Date().toISOString();
  const {data:active}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').lte('starts_at',now).gt('expires_at',now).order('expires_at',{ascending:false}).limit(1).maybeSingle();
  if(active){membership.textContent='ACTIVE';expiry.textContent='Expires '+new Date(active.expires_at).toLocaleString();}
@@ -239,11 +244,47 @@ async function refreshStudentDashboard(){
  const {data:payData,error:payError}=await supabaseClient.from('payment_submissions').select('amount,currency,transaction_reference,status,created_at').eq('user_id',user.id).order('created_at',{ascending:false}).limit(5);
  payments.textContent=payError?'Unable to load payments.':(payData?.length?payData.map(p=>p.currency+' '+p.amount+' • '+p.status+' • '+p.transaction_reference+' • '+new Date(p.created_at).toLocaleDateString()).join(' | '):'No payment submissions yet.');
  const labels=[['foundations','Security foundations'],['networking','Networking essentials'],['linux','Linux command line'],['web','Web security basics'],['passwords','Password and account safety'],['testing','Authorized security testing']];
- const done=getCompleted(user.id);document.getElementById('dashProgress').textContent=done.length+' / '+labels.length+' lessons';
+ const {data:progressData,error:progressError}=await supabaseClient.from('academy_lesson_completions').select('lesson_slug').eq('user_id',user.id);
+ const done=progressData?.map(x=>x.lesson_slug)||[];
+ if(!progressError)localStorage.setItem(progressKey(user.id),JSON.stringify(done));
+ document.getElementById('dashProgress').textContent=done.length+' / '+labels.length+' lessons';
  lessons.innerHTML='';
  labels.forEach(([slug,label])=>{const row=document.createElement('div');row.className='progress-row';const txt=document.createElement('span');txt.textContent=label;const state=document.createElement('strong');state.textContent=done.includes(slug)?'Completed ✓':'Not completed';row.append(txt,state);lessons.appendChild(row);});
+ if(progressError){certStatus.textContent='Could not load server-side lesson progress. Refresh and try again.';return;}
+ const {data:certificate,error:certError}=await supabaseClient.from('academy_certificates').select('certificate_number,issued_at').eq('user_id',user.id).eq('course_slug','cybersecurity-foundations').maybeSingle();
+ if(certError){certStatus.textContent='Could not check certificate status.';return;}
+ if(certificate){renderCertificate(studentName,certificate);certStatus.textContent='Certificate issued and saved to your account.';}
+ else if(done.length===6&&active){certStatus.textContent='You have completed all six lessons and have an active membership. You can issue your certificate.';issueButton.disabled=false;}
+ else{certStatus.textContent='Certificate unlocks after all six lessons are completed and your membership is active.';}
 }
-
+function renderCertificate(studentName,certificate){
+ document.getElementById('certificateStudentName').textContent=studentName;
+ document.getElementById('certificateNumber').textContent='Certificate No. '+certificate.certificate_number;
+ document.getElementById('certificateDate').textContent='Issued '+new Date(certificate.issued_at).toLocaleDateString();
+ document.getElementById('certificateCard').classList.remove('hidden');
+ document.getElementById('printCertificateButton').disabled=false;
+}
+async function issueCertificate(){
+ const button=document.getElementById('issueCertificateButton');button.disabled=true;button.textContent='Checking eligibility...';
+ try{
+  const {data:{user}}=await supabaseClient.auth.getUser();if(!user)throw new Error('Sign in first.');
+  const {data:existing,error:readError}=await supabaseClient.from('academy_certificates').select('certificate_number,issued_at').eq('user_id',user.id).eq('course_slug','cybersecurity-foundations').maybeSingle();
+  if(readError)throw readError;
+  let certificate=existing;
+  if(!certificate){
+   const {data:profile}=await supabaseClient.from('profiles').select('display_name').eq('id',user.id).maybeSingle();
+   const {error}=await supabaseClient.from('academy_certificates').insert({user_id:user.id,course_slug:'cybersecurity-foundations'});
+   if(error)throw error;
+   const {data:created,error:createdError}=await supabaseClient.from('academy_certificates').select('certificate_number,issued_at').eq('user_id',user.id).eq('course_slug','cybersecurity-foundations').single();
+   if(createdError)throw createdError;certificate=created;window._bwayoCertificateName=profile?.display_name||user.user_metadata?.display_name||'Student';
+  }
+  const {data:profile}=await supabaseClient.from('profiles').select('display_name').eq('id',user.id).maybeSingle();
+  renderCertificate(profile?.display_name||user.user_metadata?.display_name||'Student',certificate);
+  document.getElementById('certificateStatus').textContent='Your certificate has been issued and saved to your account.';
+ }catch(error){document.getElementById('certificateStatus').textContent=error.message||'Certificate could not be issued. Complete all lessons and check membership.';}
+ finally{button.disabled=false;button.textContent='Issue my certificate';}
+}
+function printCertificate(){document.body.classList.add('print-certificate');window.print();document.body.classList.remove('print-certificate');}
 function closeLesson(){document.getElementById('lessonPanel').classList.add('hidden')}
 function answer(ok){document.getElementById('quizResult').textContent=ok?'Correct. Always obtain permission and agree on scope before testing.':'Not quite. Ethical testing requires clear permission and an agreed scope.'}
 function demoLogin(){document.getElementById('loginResult').textContent='Demo only: no account was created and no password was sent or saved. Secure registration will be added with a backend.'}
