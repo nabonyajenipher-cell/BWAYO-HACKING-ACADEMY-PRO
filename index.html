@@ -189,7 +189,6 @@ async function refreshStudentAccess(){
  if(!user){status.textContent='Sign in and get an approved active membership to open lessons.';return;}
  const {data:profile}=await supabaseClient.from('profiles').select('role').eq('id',user.id).maybeSingle();
  if(profile?.role==='admin'){status.textContent='Administrator access: lessons are available.';return;}
- const {data,error}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').gt('starts_at',new Date(Date.now()+86400000).toISOString()).limit(1);
  // The actual entitlement check is enforced by database row-level security when lesson content is requested.
  const {data:active,error:membershipError}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').gt('expires_at',new Date().toISOString()).order('expires_at',{ascending:false}).limit(1).maybeSingle();
  if(membershipError){status.textContent='Could not check membership right now. Refresh and try again.';return;}
