@@ -190,7 +190,7 @@ async function refreshStudentAccess(){
  const {data:profile}=await supabaseClient.from('profiles').select('role').eq('id',user.id).maybeSingle();
  if(profile?.role==='admin'){status.textContent='Administrator access: lessons are available.';return;}
  // The actual entitlement check is enforced by database row-level security when lesson content is requested.
- const {data:active,error:membershipError}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').gt('expires_at',new Date().toISOString()).order('expires_at',{ascending:false}).limit(1).maybeSingle();
+ const {data:active,error:membershipError}=await supabaseClient.from('memberships').select('expires_at').eq('user_id',user.id).eq('status','active').lte('starts_at',new Date().toISOString()).gt('expires_at',new Date().toISOString()).order('expires_at',{ascending:false}).limit(1).maybeSingle();
  if(membershipError){status.textContent='Could not check membership right now. Refresh and try again.';return;}
  if(active){status.textContent='Membership active until '+new Date(active.expires_at).toLocaleString()+'. Your lessons are unlocked.';}
  else{status.textContent='No active approved membership found. Submit your payment and wait for administrator approval to unlock lessons.';}
