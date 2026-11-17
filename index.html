@@ -154,15 +154,10 @@ async function loadAdminPayments(){
 async function reviewPayment(p,status){
  const state=await isAcademyAdmin();
  if(!state.user||!state.isAdmin){alert('Administrator access is required.');return;}
- if(!confirm(status==='approved'?'Confirm that this UGX 1,000 payment is visible in your MTN MoMo account? Approve and activate 30 days?':'Reject this payment submission?'))return;
- if(status==='approved'){
-  const starts=new Date(), expires=new Date(starts.getTime()+30*24*60*60*1000);
-  const {error:memberError}=await supabaseClient.from('memberships').insert({user_id:p.user_id,status:'active',starts_at:starts.toISOString(),expires_at:expires.toISOString(),payment_provider:'manual_mtn_momo',payment_reference:p.transaction_reference});
-  if(memberError){alert('Membership was not activated: '+memberError.message);return;}
- }
- const {error}=await supabaseClient.from('payment_submissions').update({status,reviewed_at:new Date().toISOString()}).eq('id',p.id).eq('status','pending');
- if(error){alert('Could not update payment status: '+error.message);return;}
- alert(status==='approved'?'Approved. A 30-day membership record was created.':'Payment rejected.');
+ if(!confirm(status==='approved'?'First confirm that this UGX 1,000 payment is visible in your MTN MoMo account. The server will approve it and activate 30 days.':'Reject this payment submission?'))return;
+ const {data,error}=await supabaseClient.rpc('review_payment_submission',{p_payment_id:p.id,p_decision:status});
+ if(error){alert('Payment review failed: '+error.message);return;}
+ alert(status==='approved'?'Approved. A 30-day membership was activated.':'Payment rejected.');
  await loadAdminPayments();
 }
 async function refreshAdminVisibility(){
